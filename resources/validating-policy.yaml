@@ -1,0 +1,52 @@
+apiVersion: admissionregistration.k8s.io/v1  # v1alpha1 in case of t
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: "etcd-validation-deny"
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+    - apiGroups:
+        - druid.gardener.cloud
+      apiVersions:
+        - v1alpha1
+      operations:  
+        - CREATE
+        - UPDATE
+      resources: 
+        - etcds
+  validations:
+    # for etcd.spec.etcd (EtcdConfig)
+    # TODO: 1) StorageClass check(extension function)  
+    - expression: "has(object.spec.etcd.resources.requests)"
+      message: "The Requests field in etcd.spec.etcd.resources cannot be empty. "
+    # Duration check  
+    - expression: " !has(object.spec.etcd.etcdDefragTimeout)|| string(object.spec.etcd.etcdDefragTimeout).matches('^(([0-9]+(.[0-9]+)?h)?(([0-9]+(.[0-9]+)?m)?(([0-9]+(.[0-9]+)?s)?))?)$')"
+      message: "Invalid Duration given for etcd.spec.etcd.etcdDefragTimeout"
+      
+    - expression: " !has(object.spec.etcd.heartbeatDuration)|| string(object.spec.etcd.heartbeatDuration).matches('^(([0-9]+(.[0-9]+)?h)?(([0-9]+(.[0-9]+)?m)?(([0-9]+(.[0-9]+)?s)?))?)$')"
+      message: "Invalid Duration given for etcd.spec.etcd.heartbeatDuration"
+      
+    - expression: "!has(object.spec.etcd.defragmentationSchedule) || object.spec.etcd.defragmentationSchedule.matches('^(\\\\*|([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9])|\\\\*/([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9])) (\\\\*|([0-9]|1[0-9]|2[0-3])|\\\\*/([0-9]|1[0-9]|2[0-4])) (\\\\*|([1-9]|1[0-9]|2[0-9]|3[0-1])|\\\\*/([1-9]|1[0-9]|2[0-9]|3[0-1])) (\\\\*|([1-9]|1[0-2])|\\\\*/([1-9]|1[0-2])) (\\\\*|([0-6])|\\\\*/([0-6]))$')"
+      message: "Invalid cron expression given for defragmentation schedule (etcd.spec.etcd.defragmentationSchedule)"
+    # For etcd.spec.backup  
+    #TODO: Validation for storespec + Cron validation for fullSnapshotSchedule-> add checks for cron tags like weekly monthly etc. 
+    - expression: "!has(object.spec.backup.fullSnapshotSchedule) || object.spec.backup.fullSnapshotSchedule.matches('^(\\\\*|([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9])|\\\\*/([0-9]|1[0-9]|2[0-9]|3[0-9]|4[0-9]|5[0-9])) (\\\\*|([0-9]|1[0-9]|2[0-3])|\\\\*/([0-9]|1[0-9]|2[0-4])) (\\\\*|([1-9]|1[0-9]|2[0-9]|3[0-1])|\\\\*/([1-9]|1[0-9]|2[0-9]|3[0-1])) (\\\\*|([1-9]|1[0-2])|\\\\*/([1-9]|1[0-2])) (\\\\*|([0-6])|\\\\*/([0-6]))$')"
+      message: "Invalid cron expression given for fullSnapshotSchedule (etcd.spec.backup.fullSnapshotSchedule)."  
+    - expression: "!has(object.spec.backup.garbageCollectionPeriod) || string(object.spec.backup.garbageCollectionPeriod).matches('^(([0-9]+(.[0-9]+)?h)?(([0-9]+(.[0-9]+)?m)?(([0-9]+(.[0-9]+)?s)?))?)$')"
+      message: "Invalid duration given for etcd.spec.backup.garbageCollectionPeriod"
+      
+    - expression: "!has(object.spec.backup.deltaSnapshotPeriod) || string(object.spec.backup.deltaSnapshotPeriod).matches('^(([0-9]+(.[0-9]+)?h)?(([0-9]+(.[0-9]+)?m)?(([0-9]+(.[0-9]+)?s)?))?)$')"
+      message: "Invalid duration given for etcd.spec.backup.deltaSnapshotPeriod"
+
+    - expression: "!(has(object.spec.backup.deltaSnapshotPeriod) && has(object.spec.backup.garbageCollectionPeriod)) || duration(object.spec.backup.deltaSnapshotPeriod).getSeconds() < duration(object.spec.backup.garbageCollectionPeriod).getSeconds()"
+      message: "GarbageCollectionPeriod must be greater than the deltasnapshotperiod"
+      
+    - expression: "!has(object.spec.backup.etcdSnapshotTimeout) || string(object.spec.backup.etcdSnapshotTimeout).matches('^(([0-9]+(.[0-9]+)?h)?(([0-9]+(.[0-9]+)?m)?(([0-9]+(.[0-9]+)?s)?))?)$')"
+      message: "Invalid duration given for etcd.spec.backup.etcdSnapshotTimeout"
+      
+    - expression: "!has(object.spec.backup.leaderElection.reelectionPeriod) || string(object.spec.backup.leaderElection.reelectionPeriod).matches('^(([0-9]+(.[0-9]+)?h)?(([0-9]+(.[0-9]+)?m)?(([0-9]+(.[0-9]+)?s)?))?)$')"
+      message: "Invalid duration given for etcd.spec.backup.leaderElection.reelectionPeriod"
+      
+    - expression: "!has(object.spec.backup.leaderElection.etcdConnectionTimeout) || string(object.spec.backup.leaderElection.etcdConnectionTimeout).matches('^(([0-9]+(.[0-9]+)?h)?(([0-9]+(.[0-9]+)?m)?(([0-9]+(.[0-9]+)?s)?))?)$')"
+      message: "Invalid duration given for etcd.spec.backup.leaderElection.etcdConnectionTimeout" 

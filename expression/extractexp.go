@@ -25,7 +25,7 @@ type CelValidationInfo struct {
 	Message string
 	MessageExpression string // not used in the current VAP.
 }
-// in case audit is set as action instead of warn/deny
+// in case action in policybinding is set as audit instead of warn/deny
 type CelAuditAnnotationsInfo struct {
 	Key        string
 	Expression string

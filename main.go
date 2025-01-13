@@ -74,6 +74,8 @@ func main() {
 	if err != nil {
 		fmt.Printf("Error : %s\n", err)
 		return
+	} else {
+		fmt.Println("worked.")
 	}
 
 

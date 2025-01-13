@@ -12,6 +12,21 @@ import (
 	"fmt"
 )
 
+
+func EvaluateCelExpression(env *cel.Env, expression string, index int, field string ) error {
+	if expression == "" {
+		return nil // no error if no expression?
+	}
+	// compile = parse + check.
+	ast, issues := env.Compile(expression)
+		// fmt.Println(issues.Errors())
+	if issues != nil && issues.Err() != nil {
+		return fmt.Errorf("Error occured while compiling expression %d for field %s : %s", index, field, issues.Err())
+	} 
+	fmt.Println(ast.IsChecked())
+	// fmt.Println(cel.AstToParsedExpr(ast)) // parsed tree
+	return nil
+}
 // main -> create cel environment
 func EvaluateVAPCel(env *cel.Env,policy *expression.CelInformation) error {
 	fmt.Println(env)
@@ -25,14 +40,25 @@ func EvaluateVAPCel(env *cel.Env,policy *expression.CelInformation) error {
 	// for validations:
 	// fmt.Println(env.CELTypeProvider())
 	for i, validations := range policy.Validations {
-		ast, issues := env.Compile(validations.Expression)
-		fmt.Println(issues.Errors())
-		if issues != nil && issues.Err() != nil {
-			return fmt.Errorf("Error occured while compiling expression %d, : %s", i, issues.Err())
-		} 
-		fmt.Println(ast.OutputType())
-		fmt.Println(cel.AstToParsedExpr(ast)) // parsed tree
+		if validations.Expression == "" && validations.Message != "" {
+			return fmt.Errorf("Validation message is present, but Expression is missing")
+		}
+		if err := EvaluateCelExpression(env, validations.Expression,i, "validations"); err != nil {
+			return err
+		}
+		
 	}
+
+	// variables: add the if condition later.
+	for i, variables := range policy.Variables {
+		if err := EvaluateCelExpression(env, variables.Expression, i, "variables"); err != nil {
+			return err
+		}
+		
+	}
+
+	//audit annotations -> not used as of now:
+	// same for match conditions. -> add later
 	return nil
 	
 }

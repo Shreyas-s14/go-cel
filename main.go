@@ -9,6 +9,7 @@ import (
 
 	"gocel/expression"
 	"gocel/validator"
+	"gocel/yamlbuilder"
 	// metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"github.com/google/cel-go/cel"
 	"github.com/google/cel-go/ext"
@@ -77,6 +78,12 @@ func main() {
 	} else {
 		fmt.Println("worked.")
 	}
+
+	err = yamlbuilder.GenerateYAMLFromStruct(env, yamlbuilder.ValidatingAdmissionPolicies)
+	if err != nil {
+		fmt.Println(err)
+	}
+	
 
 
 
